@@ -7,7 +7,11 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
-app.use(cors(
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+
+app.use( cors(
     { credentials: true, origin: true }
 ));
 
@@ -18,11 +22,17 @@ app.use(bodyParser.urlencoded({ extended: true }))
 
 
 /* *************************this is ownershcema***************************** */
-const u="mongodb+srv://anujkumar666768:foodwind@cluster0.92wcwh6.mongodb.net/?retryWrites=true&w=majority";
-const ul="mongodb+srv://anujkumar666768:anuj@cluster0.1vrqdld.mongodb.net/?retryWrites=true&w=majority";
 
-mongoose.connect(ul, { useNewUrlParser: true });
+const ul="mongodb://127.0.0.1/hotelroom";
 
+mongoose.connect(ul, { useNewUrlParser: true , useUnifiedTopology: true,
+});
+cloudinary.config({
+    cloud_name: 'dfah4llsg',
+    api_key: '792516795792794',
+    api_secret: 'ts1AuRy0KQYDdBNl_Zqy9Y6Rdm8',
+  });
+  
 
 const userSchema = mongoose.Schema({
     name: String,
@@ -98,13 +108,22 @@ const Ownerdata = mongoose.model("ownerdata", ownerschema);
 
 /***********************************thsi is a image uploader sectioin***************************** */
 
-const storage = multer.diskStorage({
+/*const storage = multer.diskStorage({
     destination: '../frontend/src/imagescontainer',
     filename: function (req, file, cb) {
         const uniqueSuffix = Date.now();
         cb(null, uniqueSuffix + file.originalname);
     }
-});
+});*/
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'uploads',
+    
+      public_id: (req, file) => `image_${Date.now()}`,
+    },
+  });
+  
 const upload = multer({ storage: storage }).any();
 
 
@@ -157,12 +176,12 @@ app.post("/ownerreg", upload, async (req, res) => {
         wifi: req.body.wifi,
         parking: req.body.parking,
         roomsize: req.body.roomsize,
-        img: req.files[0] && req.files[0].filename ? req.files[0].filename : '',
-        img1: req.files[1] && req.files[1].filename ? req.files[1].filename : '',
-        img2: req.files[2] && req.files[2].filename ? req.files[2].filename : '',
+        img: req.files[0] && req.files[0].path ? req.files[0].path : '',
+        img1: req.files[1] && req.files[1].path ? req.files[1].path : '',
+        img2: req.files[2] && req.files[2].path ? req.files[2].path : '',
     })
     await data.save();
-    return res.send({ message: "Successfully posted" });
+    return res.send({ message: "Successfully posted",image:data });
 })
 
 
@@ -195,7 +214,7 @@ app.get("/adminhomenamesingle", verifytoken, async (req, res) => {
 
 
 })
-
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 app.get("/home/:id", async (req, res) => {
     const id = req.params.id;
     const d = await Ownerdata.findById(id);
@@ -258,7 +277,9 @@ app.post("/login", async (req, res) => {
     })
 
     res.cookie("jsonwebtoken", token, {
-        expires: new Date(Date.now() + 1000 * 12000)
+        expires: new Date(Date.now() + 1000 * 12000),
+       
+       
     })
     return res.send({ message: "Successfully login", data: existinguser, token })
 
@@ -338,6 +359,6 @@ app.get("/orderbookedadmin", async (req, res) => {
     return res.send(user)
 })
 const port=process.env.PORT || 4000;
-app.listen(port, async () => {
+app.listen(4000, async () => {
     console.log("the server is running on port 4000")
 })
